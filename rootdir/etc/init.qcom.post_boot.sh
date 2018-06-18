@@ -27,6 +27,119 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+function write() {
+    echo -n $2 > $1
+}
+
+function copy() {
+    cat $1 > $2
+}
+
+function get-set-forall() {
+    for f in $1 ; do
+        cat $f
+        write $f $2
+    done
+}
+
+function 8956_balance()
+{
+    write  /dev/kmsg "QQQQ 8956 balance start"
+    chmod 0666 /sys/block/mmcblk0/queue/scheduler
+    chmod 0666 /sys/block/mmcblk1/queue/scheduler
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chmod 0664 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    chmod 0664 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq
+    chmod 0664 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
+    chmod 0644 /sys/devices/system/cpu/cpu0/cpufreq/interactive/max_freq_hysteresis
+    # Disable thermal
+    write /sys/module/msm_thermal/core_control/enabled 0
+    # disable thermal bcl hotplug to switch governor
+    write /sys/devices/soc.0/qcom,bcl.56/mode "disable"
+    write /sys/devices/soc.0/qcom,bcl.56/hotplug_mask 0
+    write /sys/devices/soc.0/qcom,bcl.56/hotplug_soc_mask 0
+    write /sys/devices/soc.0/qcom,bcl.56/mode "enable"
+    # Adreno Idler
+    write /sys/module/adreno_idler/parameters/adreno_idler_active "Y"
+    ## CPU Governors BIG
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor "interactive"
+    restorecon -R /sys/devices/system/cpu # must restore after interactive
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/go_hispeed_load 85
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/above_hispeed_delay "19000 1382400:39000"
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_rate 20000
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/hispeed_freq 1382400
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_slack -1
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/target_loads "85 1382400:90 1747200:80"
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/min_sample_time 30000
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/boost 0
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/align_windows 0
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/io_is_busy 0
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/use_migration_notif 1
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/max_freq_hysteresis 20000
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/boostpulse_duration 80000
+    write /sys/devices/system/cpu/cpu4/cpufreq/interactive/use_sched_load 0
+    ## CPU Governors small
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive"
+    restorecon -R /sys/devices/system/cpu # must restore after interactive
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/go_hispeed_load 80
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/above_hispeed_delay 19000
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_rate 20000
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/hispeed_freq 1305600
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_slack -1
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/target_loads "1 691200:80"
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/min_sample_time 50000
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/align_windows 0
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/max_freq_hysteresis 16667
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/boost 0
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/boostpulse_duration 80000
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/io_is_busy 0
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/use_sched_load 0
+    write /sys/devices/system/cpu/cpu0/cpufreq/interactive/use_migration_notif 1
+    ## IOSCHEDs
+    write /sys/block/mmcblk0/queue/scheduler "maple"
+    write /sys/block/mmcblk1/queue/scheduler "fiops"
+    #chmod 0444 /sys/block/mmcblk0/queue/scheduler
+    #chmod 0444 /sys/block/mmcblk1/queue/scheduler
+    ## 1843MHz (Default)
+    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1440000
+    #write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 1843200
+    ## 400MHz (Default)
+    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 400000
+    #write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
+    #chmod 0444 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    #chmod 0444 /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+    ## InternalSD read_ahead
+    write /sys/block/mmcblk0/queue/read_ahead_kb 1024
+    write /sys/block/mmcblk1/queue/read_ahead_kb 1024
+    ## sched boost
+    write /proc/sys/kernel/sched_boost 0
+    ## Adreno Boost
+    write /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost 0
+    ## devfreq
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+    write /sys/class/devfreq/cpubw/governor "bw_hwmon"
+    ## GPU Clk
+    write /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 600000000
+    write /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 266666667
+    #chmod 0444 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq
+    #chmod 0444 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
+    ## Power Efficient Workqueue
+    chmod 0664 /sys/module/workqueue/parameters/power_efficient
+    write /sys/module/workqueue/parameters/power_efficient "N"
+    ## Thermal Throttling
+    write /sys/module/msm_thermal/parameters/enabled "Y"
+    write /sys/module/msm_thermal/parameters/temp_threshold 65
+    write /sys/module/msm_thermal/core_control/enabled 0
+    # Re-enable BCL hotplug
+    write /sys/devices/soc.0/qcom,bcl.56/mode "disable"
+    write /sys/devices/soc.0/qcom,bcl.56/hotplug_mask 48
+    write /sys/devices/soc.0/qcom,bcl.56/hotplug_soc_mask 48
+    write /sys/devices/soc.0/qcom,bcl.56/mode "enable"
+    write  /dev/kmsg "QQQQ 8956 balance end"
+}
+
 function 8953_sched_dcvs_eas()
 {
     #governor settings
@@ -1535,12 +1648,96 @@ case "$target" in
                 echo   1 > /proc/sys/kernel/sched_enable_thread_grouping
 
                 # Set Memory parameters
-                configure_memory_parameters
+                #configure_memory_parameters
 
             ;;
         esac
         #Enable Memory Features
-        enable_memory_features
+        #enable_memory_features
+
+
+    MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+    MemTotal=${MemTotalStr:16:8}
+    # Read adj series and set adj threshold for PPR and ALMK.
+    # This is required since adj values change from framework to framework.
+    adj_series=`cat /sys/module/lowmemorykiller/parameters/adj`
+    adj_1="${adj_series#*,}"
+    set_almk_ppr_adj="${adj_1%%,*}"
+
+    # PPR and ALMK should not act on HOME adj and below.
+    # Normalized ADJ for HOME is 6. Hence multiply by 6
+    # ADJ score represented as INT in LMK params, actual score can be in decimal
+    # Hence add 6 considering a worst case of 0.9 conversion to INT (0.9*6).
+    set_almk_ppr_adj=$(((set_almk_ppr_adj * 6) + 6))
+    echo $set_almk_ppr_adj > /sys/module/lowmemorykiller/parameters/adj_max_shift
+    echo $set_almk_ppr_adj > /sys/module/process_reclaim/parameters/min_score_adj
+
+    #Set Low memory killer minfree parameters
+    # 64 bit up to 2GB with use 14K, and above 2GB will use 18K
+    #
+    # Set ALMK parameters (usually above the highest minfree values)
+    # 64 bit will have 81K 
+    chmod 0660 /sys/module/lowmemorykiller/parameters/minfree
+
+    echo 1 > /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk
+    echo 1 > /sys/module/process_reclaim/parameters/enable_process_reclaim
+    echo 70 > /sys/module/process_reclaim/parameters/pressure_max
+    echo 30 > /sys/module/process_reclaim/parameters/swap_opt_eff
+
+    setprop ro.vendor.qti.sys.fw.bservice_enable true
+    setprop ro.vendor.qti.sys.fw.bservice_limit 5
+    setprop ro.vendor.qti.sys.fw.bservice_age 5000
+
+    if [ $MemTotal -gt 2100000 ]; then
+        echo "10" > /sys/module/process_reclaim/parameters/pressure_min
+        echo "1024" > /sys/module/process_reclaim/parameters/per_swap_size
+        echo "18432,23040,27648,32256,55296,80640" > /sys/module/lowmemorykiller/parameters/minfree
+        echo "81250" > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
+        echo "40" > /proc/sys/vm/vfs_cache_pressure
+        echo "50" > /proc/sys/vm/dirty_ratio
+        echo "40" > /proc/sys/vm/swappiness
+        8956_balance
+    else
+        #echo "10" > /sys/module/process_reclaim/parameters/pressure_min
+        #echo "1024" > /sys/module/process_reclaim/parameters/per_swap_size
+        #echo "14746,18432,22118,25805,40000,55000" > /sys/module/lowmemorykiller/parameters/minfree
+        #echo "81250" > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
+        #echo "60" > /proc/sys/vm/vfs_cache_pressure
+        #echo "20" > /proc/sys/vm/dirty_ratio
+        echo "60" > /proc/sys/vm/swappiness
+
+        echo "10" > /sys/module/process_reclaim/parameters/pressure_min
+        echo "1024" > /sys/module/process_reclaim/parameters/per_swap_size
+        echo "18432,23040,27648,32256,55296,80640" > /sys/module/lowmemorykiller/parameters/minfree
+        echo "81250" > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
+        echo "40" > /proc/sys/vm/vfs_cache_pressure
+        echo "50" > /proc/sys/vm/dirty_ratio
+        8956_balance
+    fi
+
+    # Enable ZRAM
+    swapoff /dev/block/zram0
+    chmod 0664 /sys/block/zram0/*
+    echo "1" > /sys/block/zram0/reset
+    #echo "lz4" > /sys/block/zram0/comp_algorithm
+    if [ $MemTotal -gt 2100000 ]; then
+        echo "768M" > /sys/block/zram0/disksize
+    else
+        echo "1024M" > /sys/block/zram0/disksize
+    fi
+    mkswap /dev/block/zram0
+    swapon /dev/block/zram0
+
+    # disable wakelocks
+    write /sys/module/wakeup/parameters/enable_qcom_rx_wakelock_ws 0
+    write /sys/module/wakeup/parameters/enable_wlan_extscan_wl_ws 0
+    write /sys/module/wakeup/parameters/enable_ipa_ws 0
+    write /sys/module/wakeup/parameters/enable_wlan_wow_wl_ws 0
+    write /sys/module/wakeup/parameters/enable_wlan_ws 0
+    write /sys/module/wakeup/parameters/enable_timerfd_ws 0
+    write /sys/module/wakeup/parameters/enable_netlink_ws 0
+    write /sys/module/wakeup/parameters/enable_netmgr_wl_ws 0
+
     ;;
 esac
 
