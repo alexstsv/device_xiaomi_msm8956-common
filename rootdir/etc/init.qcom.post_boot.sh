@@ -1719,7 +1719,7 @@ case "$target" in
     swapoff /dev/block/zram0
     chmod 0664 /sys/block/zram0/*
     echo "1" > /sys/block/zram0/reset
-    #echo "lz4" > /sys/block/zram0/comp_algorithm
+    echo "lz4" > /sys/block/zram0/comp_algorithm
     if [ $MemTotal -gt 2100000 ]; then
         echo "768M" > /sys/block/zram0/disksize
     else
