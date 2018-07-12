@@ -515,7 +515,7 @@ service start_hci_filter /system/vendor/bin/wcnss_filter
     disabled
     writepid /dev/cpuset/system-background/tasks
 
-service config_bluetooth /system/vendor/bin/btnvtool -O
+service config_bluetooth /vendor/bin/init.qcom.bt.sh
     class core
     user bluetooth
     group bluetooth radio
